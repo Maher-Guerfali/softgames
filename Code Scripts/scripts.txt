@@ -1,0 +1,196 @@
+//FPS : 
+import { Behaviour, Text, serializable } from "@needle-tools/engine";
+
+export class FPSDisplay extends Behaviour {
+    
+	@serializable(Text)
+    fpsText?: Text;
+    private deltaTime: number = 0.0;
+
+    
+	update() {
+        this.deltaTime += (this.context.time.deltaTime - this.deltaTime) * 0.1;
+        const fps: number = 1.0 / this.deltaTime;
+        if (this.fpsText !== undefined) {
+            this.fpsText.text = "FPS : " + Math.round(fps); // fps settings
+        }
+    }
+}
+
+//cards Fliping : import { Behaviour,Image,Sprite,WaitForSeconds,serializable } from "@needle-tools/engine";
+import { Object3D, AnimationClip, Vector3 } from "three";
+
+export class StartCard extends Behaviour {
+    
+    @serializable(Object3D)
+    card1?: Object3D; //stack1
+
+    @serializable(Object3D)
+    card2?: Object3D; //stack2
+
+    @serializable(Object3D)
+    cardaniation?: Object3D; //stack2
+
+    @serializable()
+    cardsnumber: number = 144;
+
+    @serializable()
+    currentcard: number = 0;
+
+    @serializable(AnimationClip)
+    animation?: AnimationClip;
+
+    private timer1: number = 0;
+    private timer2: number = 0;
+    private startPosition1?: Vector3;
+    private startPosition2?: Vector3;
+
+    @serializable(Image)
+	endcardstopimage: Image | null = null;
+
+    @serializable(Image)
+	cardtochange: Image | null = null;
+
+
+
+
+	@serializable(Sprite)
+	cardsfaces: Array<Sprite> | null = null;
+
+
+    onEnable() {
+        this.timer1 = 0;
+        this.timer2 = 0;
+        this.startPosition1 = this.card1 ? this.card1.position.clone() : undefined;
+        this.startPosition2 = this.card2 ? this.card2.position.clone() : undefined;
+        
+    }
+
+    update() {
+        
+       
+        // Update the position of card1 every second
+        this.timer1 += this.context.time.deltaTime;
+        if (this.timer1 >= 1 && this.card1) {
+            this.currentcard = Math.floor(Math.random() * this.cardsfaces.length);
+            const currentPosition1 = this.card1.position.clone();
+            
+            this.cardtochange.sprite = this.cardsfaces[this.currentcard];
+            currentPosition1.y -= 0.000198; // it take 288sec to do all the 144 card so the size of the stack will decrease down
+             // Change the face of the first card every second
+            this.card1.position.copy(currentPosition1);
+            this.timer1 = 0;
+            if (currentPosition1.y <= -0.063) {
+                this.card1.position.setY(-0.063);
+                if (this.gameObject) {
+                    this.gameObject.active = false;
+                }
+            }
+        }
+    
+        // Update the position of card2 every 2 seconds
+        this.timer2 += this.context.time.deltaTime;
+        if (this.timer2 >= 2 && this.card2) {
+            const currentPosition2 = this.card2.position.clone();
+            currentPosition2.y += 0.000404; // same for the other half 
+            this.endcardstopimage.sprite = this.cardsfaces[this.currentcard];
+            this.card2.position.copy(currentPosition2);
+            this.timer2 = 0;
+            if (currentPosition2.y >= 0.056) {
+                this.card2.position.setY(0.056);
+                 // Change the face of the second card when it reaches its destination
+            }
+        }
+    }
+
+    onDisable() {
+        // Reset positions to initial positions
+        if (this.card1 && this.startPosition1) {
+            this.card1.position.copy(this.startPosition1);
+        }
+        if (this.card2 && this.startPosition2) {
+            this.card2.position.copy(this.startPosition2); // menu settings on and of
+        }
+    }
+    
+   
+   
+}
+
+
+//random text and icon  image :
+
+import { Behaviour, Text, Image, WaitForSeconds, serializable, Sprite } from "@needle-tools/engine";
+
+export class TextImageCycle extends Behaviour {
+   
+    @serializable(Text)
+    textComponent?: Text;
+    @serializable(Image)
+    imageComponent?: Image;
+   
+    @serializable(String)
+    textList: string[] = [];
+    @serializable(Image)
+	imageField: Image | null = null;
+
+	@serializable(Sprite)
+	images: Array<Sprite> | null = null;
+
+
+    private timer: number = 0;
+    private currentIndex: number = 0;
+
+    onEnable(): void {
+        this.timer = 0;
+        this.currentIndex = 0;
+        this.startCoroutine(this.updateTextAndImage());
+    }
+
+    private *updateTextAndImage() {
+        while (true) {
+            // Increment the timer
+            this.timer += this.context.time.deltaTime;
+
+            // Check if it's time to cycle
+            if (this.timer >= 2 && this.textComponent && this.imageComponent) {
+                // Reset the timer
+                this.timer = 0;
+
+                // Cycle to the next text and image
+                this.currentIndex = (this.currentIndex + 1) % Math.min(this.textList.length, 5);
+
+                // Display the new text and image
+                this.displayTextAndImage();
+                this.changeFontSize();
+                // Wait for 2 seconds
+                yield WaitForSeconds(2);
+            }
+
+            // Yield execution until the next frame
+            yield;
+        }
+    }
+
+    private displayTextAndImage(): void {
+        // Display the text
+        if (this.textList.length > 0 && this.textComponent) {
+            const randomTextIndex = Math.floor(Math.random() * this.textList.length);
+            this.textComponent.text = this.textList[randomTextIndex];
+        }
+
+        // Display the image
+        if (this.images && this.imageComponent) {
+            const randomImageIndex = Math.floor(Math.random() * this.images.length);
+            this.imageComponent.sprite = this.images[randomImageIndex];
+        }
+    }
+
+    private changeFontSize(): void {
+        if (this.textComponent) {
+            // Randomly generate font size between 10 and 40
+            const fontSize = Math.floor(Math.random() * (40 - 10 + 1)) + 10;
+            this.textComponent.fontSize = fontSize; // random font
+        }
+    }
+}
